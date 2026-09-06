@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CREOVANTA | Production Platform</title>
+    <meta name="description" content="CREOVANTA production platform with authentication, project management, AI assistant, store, and admin dashboard." />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <div class="brand-mark">C</div>
+          <div>
+            <div class="brand-name">CREOVANTA</div>
+            <small>Operations Suite</small>
+          </div>
+        </div>
+
+        <nav class="primary-nav" aria-label="Main platform navigation">
+          <button class="nav-link active" data-target="overview">Overview</button>
+          <button class="nav-link" data-target="aiWorkspace">AI Assistant</button>
+          <button class="nav-link" data-target="projects">Workspace</button>
+          <button class="nav-link" data-target="store">Marketplace</button>
+          <button class="nav-link" data-target="admin">Admin</button>
+        </nav>
+
+        <div class="topbar-actions">
+          <span class="status-pill"><span class="pulse-dot"></span>System online</span>
+          <button class="ghost-btn" id="loginButton">Sign in</button>
+          <div class="user-badge hidden" id="userBadge"></div>
+          <button class="ghost-btn hidden" id="logoutButton">Logout</button>
+        </div>
+      </header>
+
+      <main class="platform-layout">
+        <aside class="sidebar">
+          <section class="sidebar-card hero-panel">
+            <p class="eyebrow">Engineering ecosystem</p>
+            <h2>Production-ready operations for technical teams.</h2>
+            <p>Secure workspaces, AI-powered engineering support, managed projects, product commerce, and operational insight.</p>
+            <div class="mini-stack">
+              <span>AI Copilot</span>
+              <span>PLCs</span>
+              <span>Digital Twin</span>
+            </div>
+          </section>
+
+          <section class="sidebar-card">
+            <p class="section-kicker">Quick actions</p>
+            <div class="quick-actions">
+              <button class="action-btn" data-target="aiWorkspace">Open AI Copilot</button>
+              <button class="action-btn" data-target="projects">Launch workspace</button>
+              <button class="action-btn" data-target="store">Browse products</button>
+              <button class="action-btn" data-target="admin">Open admin view</button>
+            </div>
+          </section>
+        </aside>
+
+        <div class="content-panel">
+          <section id="overview" class="view active">
+            <div class="hero-banner">
+              <div>
+                <p class="eyebrow">Knowledge + software + engineering design + automation</p>
+                <h1>Build faster with secure engineering operations.</h1>
+                <p class="lead">CREOVANTA combines secure user accounts, AI-assisted engineering guidance, project workflows, product commerce, and operational dashboards in one platform.</p>
+                <div class="hero-actions">
+                  <button class="primary-btn" data-target="projects">Explore app</button>
+                  <button class="secondary-btn" data-target="store">View marketplace</button>
+                </div>
+              </div>
+
+              <div class="hero-metrics">
+                <div class="metric-card accent">
+                  <small>Active projects</small>
+                  <strong id="metricProjects">0</strong>
+                  <span>Across engineering teams</span>
+                </div>
+                <div class="metric-card">
+                  <small>AI automations</small>
+                  <strong>27</strong>
+                  <span>Workflow ready</span>
+                </div>
+                <div class="metric-card">
+                  <small>System uptime</small>
+                  <strong>99.2%</strong>
+                  <span>Operational health</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="module-grid">
+              <article class="module-card">
+                <div class="module-icon">⚙️</div>
+                <h3>Engineering knowledge hub</h3>
+                <p>Centralise technical references, standards, design notes, and engineering learning.</p>
+              </article>
+              <article class="module-card">
+                <div class="module-icon">🧠</div>
+                <h3>AI engineering copilot</h3>
+                <p>Get problem-solving support for design, automation, testing, and product ideas.</p>
+              </article>
+              <article class="module-card">
+                <div class="module-icon">🤖</div>
+                <h3>Automation + robotics</h3>
+                <p>Coordinate control logic, sensor integration, and industrial workflows with confidence.</p>
+              </article>
+              <article class="module-card">
+                <div class="module-icon">💡</div>
+                <h3>Prototype to product</h3>
+                <p>Turn ideas into structured delivery cycles with clear review and validation stages.</p>
+              </article>
+            </div>
+
+            <div class="ticker-row">
+              <span>Electrical design</span>
+              <span>Mechanical systems</span>
+              <span>PLC & automation</span>
+              <span>Industrial IoT</span>
+              <span>AI workflows</span>
+              <span>Productivity tools</span>
+            </div>
+          </section>
+
+          <section id="aiWorkspace" class="view">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">AI engineering copilot</p>
+                <h2>Ask for design, automation, and product insights.</h2>
+              </div>
+              <span class="status-pill neutral">Protected AI access</span>
+            </div>
+
+            <div class="assistant-layout">
+              <div class="chat-shell">
+                <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+                <form id="chatForm" class="chat-form">
+                  <input id="chatInput" type="text" placeholder="Ask about PLC logic, AI automation, prototypes, or product strategy..." aria-label="Type your question" />
+                  <button type="submit" class="primary-btn small">Send</button>
+                </form>
+              </div>
+
+              <aside class="assistant-side">
+                <div class="info-card">
+                  <h3>Suggested prompts</h3>
+                  <ul>
+                    <li>Design a PLC ladder for conveyor safety.</li>
+                    <li>Help me create a product MVP roadmap.</li>
+                    <li>Compare robotic cell options for packaging.</li>
+                    <li>Draft an engineering documentation template.</li>
+                  </ul>
+                </div>
+                <div class="info-card">
+                  <h3>System insights</h3>
+                  <div class="mini-bar-group">
+                    <div><span>Automation score</span><strong>96%</strong></div>
+                    <div><span>Design clarity</span><strong>89%</strong></div>
+                    <div><span>Prototype readiness</span><strong>91%</strong></div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section id="projects" class="view">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Project workspace</p>
+                <h2>Plan, deliver, and track technical work.</h2>
+              </div>
+              <span class="status-pill neutral">Secure workspace</span>
+            </div>
+
+            <div class="workspace-summary">
+              <div class="mini-stat"><strong id="projectCount">0</strong><span>Open tasks</span></div>
+              <div class="mini-stat"><strong id="projectProgress">0%</strong><span>Delivery progress</span></div>
+              <div class="mini-stat"><strong id="projectMilestones">0</strong><span>Key milestones</span></div>
+            </div>
+
+            <div class="workspace-layout">
+              <div class="project-panel">
+                <form id="taskForm" class="task-form">
+                  <input id="taskTitle" type="text" placeholder="Add a new project task" aria-label="Add a project task" />
+                  <select id="taskProject" aria-label="Project for task">
+                    <option value="">Select project</option>
+                  </select>
+                  <button type="submit" class="primary-btn small">Add task</button>
+                </form>
+                <div class="task-board" id="taskBoard"></div>
+              </div>
+
+              <aside class="project-side">
+                <div class="info-card">
+                  <h3>Create project</h3>
+                  <form id="projectForm" class="stack-form">
+                    <input id="projectName" type="text" placeholder="Project name" required />
+                    <textarea id="projectDescription" rows="3" placeholder="Project summary"></textarea>
+                    <select id="projectCategory">
+                      <option value="Automation">Automation</option>
+                      <option value="AI">AI</option>
+                      <option value="Design">Design</option>
+                      <option value="Product">Product</option>
+                    </select>
+                    <button type="submit" class="primary-btn full">Save project</button>
+                  </form>
+                </div>
+
+                <div class="info-card">
+                  <h3>Document vault</h3>
+                  <form id="documentUploadForm" class="stack-form">
+                    <input id="documentFile" type="file" required />
+                    <button type="submit" class="secondary-btn full">Upload document</button>
+                  </form>
+                  <div id="documentList" class="document-list"></div>
+                </div>
+
+                <div class="info-card">
+                  <h3>Milestones</h3>
+                  <form id="milestoneForm" class="stack-form">
+                    <input id="milestoneTitle" type="text" placeholder="Milestone name" required />
+                    <select id="milestoneProject" aria-label="Project for milestone">
+                      <option value="">Select project</option>
+                    </select>
+                    <button type="submit" class="secondary-btn full">Add milestone</button>
+                  </form>
+                  <div id="milestoneList" class="document-list"></div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section id="store" class="view">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Digital product marketplace</p>
+                <h2>Engineering tools, assets, and operating templates.</h2>
+              </div>
+              <span class="status-pill neutral">Live catalog</span>
+            </div>
+
+            <div class="store-layout">
+              <div class="product-panel">
+                <div class="product-grid" id="productGrid"></div>
+              </div>
+
+              <aside class="cart-panel">
+                <h3>Cart summary</h3>
+                <div id="cartItems" class="cart-items"></div>
+                <div class="cart-total-row">
+                  <span>Items</span>
+                  <strong id="cartCount">Cart: 0</strong>
+                </div>
+                <div class="cart-total-row total">
+                  <span>Total</span>
+                  <strong id="cartTotal">$0.00</strong>
+                </div>
+                <button id="checkoutBtn" class="primary-btn full">Checkout</button>
+              </aside>
+            </div>
+          </section>
+
+          <section id="admin" class="view">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Admin dashboard</p>
+                <h2>Team health, revenue, and operational visibility.</h2>
+              </div>
+              <span class="status-pill neutral">Protected admin</span>
+            </div>
+
+            <div class="admin-grid">
+              <div class="admin-stat">
+                <small>Total users</small>
+                <strong id="adminUsers">0</strong>
+              </div>
+              <div class="admin-stat">
+                <small>Projects</small>
+                <strong id="adminProjects">0</strong>
+              </div>
+              <div class="admin-stat">
+                <small>Revenue</small>
+                <strong id="adminRevenue">$0</strong>
+              </div>
+              <div class="admin-stat">
+                <small>Orders</small>
+                <strong id="adminOrders">0</strong>
+              </div>
+            </div>
+
+            <div class="admin-panels">
+              <div class="admin-box">
+                <h3>Team health</h3>
+                <div class="bar-chart">
+                  <span style="height: 62%;"></span>
+                  <span style="height: 79%;"></span>
+                  <span style="height: 46%;"></span>
+                  <span style="height: 88%;"></span>
+                  <span style="height: 72%;"></span>
+                  <span style="height: 95%;"></span>
+                </div>
+              </div>
+
+              <div class="admin-box">
+                <h3>Alerts</h3>
+                <ul class="alert-list">
+                  <li>Firmware update scheduled for the testing line.</li>
+                  <li>2 procurement approvals are awaiting review.</li>
+                  <li>AI assistant compliance review is due Friday.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="modal-backdrop hidden" id="authModal" aria-hidden="true">
+      <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button class="close-modal" id="closeAuth" aria-label="Close authentication panel">×</button>
+        <div class="auth-header">
+          <p class="eyebrow">Secure access</p>
+          <h2 id="authTitle">Welcome to CREOVANTA</h2>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-auth="login">Sign in</button>
+          <button class="auth-tab" data-auth="register">Create account</button>
+        </div>
+
+        <form id="loginForm" class="auth-form active">
+          <label>
+            Email
+            <input type="email" id="loginEmail" placeholder="name@creovanta.io" required />
+          </label>
+          <label>
+            Password
+            <input type="password" id="loginPassword" placeholder="Enter password" required />
+          </label>
+          <button type="submit" class="primary-btn full">Continue</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+          <label>
+            Full name
+            <input type="text" id="registerName" placeholder="Your full name" required />
+          </label>
+          <label>
+            Email
+            <input type="email" id="registerEmail" placeholder="name@creovanta.io" required />
+          </label>
+          <label>
+            Password
+            <input type="password" id="registerPassword" placeholder="Create password" required />
+          </label>
+          <button type="submit" class="primary-btn full">Create account</button>
+        </form>
+
+        <div class="demo-accounts">
+          <span>Demo access:</span>
+          <button type="button" class="mini-demo" data-demo="engineer">Engineer login</button>
+          <button type="button" class="mini-demo" data-demo="reviewer">Reviewer login</button>
+          <button type="button" class="mini-demo" data-demo="admin">Admin login</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
+</html>
