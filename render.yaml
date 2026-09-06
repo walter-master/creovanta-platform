@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: creovanta-platform
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: APP_URL
+        value: https://creovanta-platform.onrender.com
+      - key: DATABASE_PATH
+        value: /var/data/creovanta.db
+      - key: UPLOAD_FOLDER
+        value: /var/data/uploads
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SESSION_COOKIE_SECURE
+        value: true
+      - key: PREFERRED_URL_SCHEME
+        value: https
+    disk:
+      name: creovanta-data
+      mountPath: /var/data
+      sizeGB: 1

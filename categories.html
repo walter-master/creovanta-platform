@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Categories | CREOVANTA</title>
+    <meta name="description" content="Explore engineering categories from mechatronics and industrial systems to AI, coding, careers, and fundamentals." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a href="index.html" class="brand" aria-label="CREOVANTA home">
+          <div class="brand-mark">C</div>
+          <span>CREOVANTA</span>
+        </a>
+        <nav class="main-nav" aria-label="Main menu">
+          <a href="index.html">Home</a>
+          <a href="categories.html">Categories</a>
+          <a href="blog.html">Blog</a>
+          <a href="about.html">About</a>
+        </nav>
+        <a href="index.html#cta" class="nav-button">Get started</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="page-hero small-hero">
+        <div class="container narrow">
+          <p class="eyebrow">Browse by field</p>
+          <h1>Explore the systems that shape industry.</h1>
+          <p class="lead">From machine control and automation to AI, careers, and engineering fundamentals, CREOVANTA covers the full learning journey.</p>
+        </div>
+      </section>
+
+      <section class="categories-section page-section">
+        <div class="container">
+          <div class="filter-bar" aria-label="Filter categories">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="mechatronics">Mechatronics</button>
+            <button class="filter-btn" data-filter="industrial">Industrial Systems</button>
+            <button class="filter-btn" data-filter="ai">AI &amp; Technology</button>
+            <button class="filter-btn" data-filter="coding">Coding</button>
+            <button class="filter-btn" data-filter="careers">Careers</button>
+            <button class="filter-btn" data-filter="how-it-works">How Things Work</button>
+          </div>
+
+          <div id="categoryGrid" class="category-grid" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="cta-section">
+        <div class="container cta-box">
+          <div>
+            <p class="eyebrow">Find your path</p>
+            <h2>Start learning where your interests begin.</h2>
+          </div>
+          <a href="blog.html" class="primary-btn">Read the blog</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-wrap">
+        <p>© 2026 CREOVANTA</p>
+        <p>Learn what powers industry.</p>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CREOVANTA OS | Platform</title>
+    <meta
+      name="description"
+      content="CREOVANTA is a practical engineering platform for automation, AI, software, product design, and digital operations."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <div class="brand-mark">C</div>
+          <div>
+            <div class="brand-name">CREOVANTA</div>
+            <small>Operations Suite</small>
+          </div>
+        </div>
+
+        <nav class="primary-nav" aria-label="Main platform navigation">
+          <button class="nav-link active" data-target="overview">Overview</button>
+          <button class="nav-link" data-target="aiWorkspace">AI Assistant</button>
+          <button class="nav-link" data-target="projects">Workspace</button>
+          <button class="nav-link" data-target="store">Marketplace</button>
+          <button class="nav-link" data-target="admin">Admin</button>
+        </nav>
+
+        <div class="topbar-actions">
+          <span class="status-pill"><span class="pulse-dot"></span>System online</span>
+          <button class="ghost-btn" id="loginButton">Sign in</button>
+          <div class="user-badge hidden" id="userBadge"></div>
+        </div>
+      </header>
+
+      <main class="platform-layout">
+        <aside class="sidebar">
+          <section class="sidebar-card hero-panel">
+            <p class="eyebrow">Engineering ecosystem</p>
+            <h2>Connected outcomes for technical teams.</h2>
+            <p>
+              Design, automate, prototype, learn, and deliver with one intelligent platform.
+            </p>
+            <div class="mini-stack">
+              <span>AI Copilot</span>
+              <span>PLC Logic</span>
+              <span>Digital Twin</span>
+            </div>
+          </section>
+
+          <section class="sidebar-card">
+            <p class="section-kicker">Quick actions</p>
+            <div class="quick-actions">
+              <button class="action-btn" data-target="aiWorkspace">Open AI Copilot</button>
+              <button class="action-btn" data-target="projects">Launch workspace</button>
+              <button class="action-btn" data-target="store">Browse products</button>
+              <button class="action-btn" data-target="admin">Open admin view</button>
+            </div>
+          </section>
+        </aside>
+
+        <div class="content-panel">
+          <section id="overview" class="view active">
+            <div class="hero-banner">
+              <div>
+                <p class="eyebrow">Knowledge + software + engineering design + automation</p>
+                <h1>Intelligent solutions for everyone building the future of industry.</h1>
+                <p class="lead">
+                  CREOVANTA brings together engineering learning, AI workflows, connected systems,
+                  product ideation, and operational execution in one purpose-built platform.
+                </p>
+                <div class="hero-actions">
+                  <button class="primary-btn" data-target="projects">Explore app</button>
+                  <button class="secondary-btn" data-target="store">View marketplace</button>
+                </div>
+              </div>
+
+              <div class="hero-metrics">
+                <div class="metric-card accent">
+                  <small>Active projects</small>
+                  <strong>18</strong>
+                  <span>+4 this week</span>
+                </div>
+                <div class="metric-card">
+                  <small>AI automations</small>
+                  <strong>27</strong>
+                  <span>Across engineering flows</span>
+                </div>
+                <div class="metric-card">
+                  <small>Team readiness</small>
+                  <strong>92%</strong>
+                  <span>System health</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="module-grid">
+              <article class="module-card">
+                <div class="module-icon">⚙️</div>
+                <h3>Engineering knowledge hub</h3>
+                <p>Factual references, technical notes, production standards, and practical learning tracks.</p>
+              </article>
+
+              <article class="module-card">
+                <div class="module-icon">🧠</div>
+                <h3>AI engineering copilot</h3>
+                <p>Ask for design guidance, system recommendations, code help, and technical brief generation.</p>
+              </article>
+
+              <article class="module-card">
+                <div class="module-icon">🤖</div>
+                <h3>Automation + robotics</h3>
+                <p>Manage PLC logic, machine intelligence, robotics integration, and industrial workflows.</p>
+              </article>
+
+              <article class="module-card">
+                <div class="module-icon">💡</div>
+                <h3>Prototype to product</h3>
+                <p>Capture ideas, test prototypes, learn quickly, and improve every iteration with evidence.</p>
+              </article>
+            </div>
+
+            <div class="ticker-row">
+              <span>Electrical design</span>
+              <span>Mechanical systems</span>
+              <span>PLC & automation</span>
+              <span>Industrial IoT</span>
+              <span>AI workflows</span>
+              <span>Productivity tools</span>
+            </div>
+          </section>
+
+          <section id="aiWorkspace" class="view">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">AI engineering copilot</p>
+                <h2>Ask for design, automation, and product insights.</h2>
+              </div>
+              <span class="status-pill neutral">Live simulation</span>
+            </div>
+
+            <div class="assistant-layout">
+              <div class="chat-shell">
+                <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+                <form id="chatForm" class="chat-form">
+                  <input id="chatInput" type="text" placeholder="Ask about PLC logic, AI automation, prototypes, or product strategy..." aria-label="Type your question" />
+                  <button type="submit" class="primary-btn small">Send</button>
+                </form>
+              </div>
+
+              <aside class="assistant-side">
+                <div class="info-card">
+                  <h3>Suggested prompts</h3>
+                  <ul>
+                    <li>Design a PLC ladder for conveyor safety.</li>
+                    <li>Help me create a product MVP roadmap.</li>
+                    <li>Compare robotic cell options for packaging.</li>
+                    <li>Draft an engineering documentation template.</li>
+                  </ul>
+                </div>
+                <div class="info-card">
+                  <h3>System insights</h3>
+                  <div class="mini-bar-group">
+                    <div><span>Automation score</span><strong>96%</strong></div>
+                    <div><span>Design clarity</span><strong>89%</strong></div>
+                    <div><span>Prototype readiness</span><strong>91%</strong></div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section id="projects" class="view">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Project workspace</p>
+                <h2>Plan, track, and deliver technical work.</h2>
+              </div>
+              <span class="status-pill success">3 active streams</span>
+            </div>
+
+            <div class="workspace-stats">
+              <div class="mini-stat"><strong id="projectCount">0</strong><span>Open tasks</span></div>
+              <div class="mini-stat"><strong>4</strong><span>Active squads</span></div>
+              <div class="mini-stat"><strong>7</strong><span>Milestones</span></div>
+            </div>
+
+            <div class="task-board" id="taskBoard"></div>
+
+            <form id="taskForm" class="task-form">
+              <input id="taskTitle" type="text" placeholder="Add a new project task" aria-label="Add a project task" />
+              <button type="submit" class="primary-btn small">Add task</button>
+            </form>
+          </section>
+
+          <section id="store" class="view">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Digital product marketplace</p>
+                <h2>Technical tools, templates, and systems.</h2>
+              </div>
+              <span class="status-pill neutral" id="cartCount">Cart: 0</span>
+            </div>
+
+            <div class="store-layout">
+              <div class="product-grid" id="productGrid"></div>
+
+              <aside class="cart-panel">
+                <h3>Cart summary</h3>
+                <div id="cartItems" class="cart-items"></div>
+                <div class="cart-total">
+                  <span>Total</span>
+                  <strong id="cartTotal">$0.00</strong>
+                </div>
+                <button class="primary-btn full" id="checkoutBtn">Proceed to checkout</button>
+              </aside>
+            </div>
+          </section>
+
+          <section id="admin" class="view">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Operations admin</p>
+                <h2>Platform health and governance.</h2>
+              </div>
+              <span class="status-pill warning">Admin view</span>
+            </div>
+
+            <div class="admin-grid">
+              <div class="admin-card kpi-card accent">
+                <small>Revenue</small>
+                <strong>$84.8K</strong>
+                <span>+18.4% vs last month</span>
+              </div>
+              <div class="admin-card kpi-card">
+                <small>Active users</small>
+                <strong>1,842</strong>
+                <span>Across engineering teams</span>
+              </div>
+              <div class="admin-card kpi-card">
+                <small>Support queue</small>
+                <strong>14</strong>
+                <span>Needs review</span>
+              </div>
+              <div class="admin-card kpi-card">
+                <small>Automation uptime</small>
+                <strong>99.2%</strong>
+                <span>System stable</span>
+              </div>
+            </div>
+
+            <div class="admin-panels">
+              <div class="admin-box">
+                <h3>Team health</h3>
+                <div class="bar-chart">
+                  <span style="height: 62%;"></span>
+                  <span style="height: 79%;"></span>
+                  <span style="height: 46%;"></span>
+                  <span style="height: 88%;"></span>
+                  <span style="height: 72%;"></span>
+                  <span style="height: 95%;"></span>
+                </div>
+              </div>
+
+              <div class="admin-box">
+                <h3>Alerts</h3>
+                <ul class="alert-list">
+                  <li>Firmware update scheduled for the testing line.</li>
+                  <li>2 procurement approvals are awaiting review.</li>
+                  <li>AI assistant compliance review is due Friday.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="modal-backdrop hidden" id="authModal" aria-hidden="true">
+      <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button class="close-modal" id="closeAuth" aria-label="Close authentication panel">×</button>
+        <div class="auth-header">
+          <p class="eyebrow">Secure access</p>
+          <h2 id="authTitle">Welcome to CREOVANTA</h2>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-auth="login">Sign in</button>
+          <button class="auth-tab" data-auth="register">Create account</button>
+        </div>
+
+        <form id="loginForm" class="auth-form active">
+          <label>
+            Email
+            <input type="email" id="loginEmail" placeholder="name@creovanta.io" required />
+          </label>
+          <label>
+            Password
+            <input type="password" id="loginPassword" placeholder="Enter password" required />
+          </label>
+          <button type="submit" class="primary-btn full">Continue</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+          <label>
+            Full name
+            <input type="text" id="registerName" placeholder="Your full name" required />
+          </label>
+          <label>
+            Email
+            <input type="email" id="registerEmail" placeholder="name@creovanta.io" required />
+          </label>
+          <label>
+            Password
+            <input type="password" id="registerPassword" placeholder="Create password" required />
+          </label>
+          <button type="submit" class="primary-btn full">Create account</button>
+        </form>
+
+        <div class="demo-accounts">
+          <span>Demo access:</span>
+          <button type="button" class="mini-demo" data-demo="engineer">Engineer login</button>
+          <button type="button" class="mini-demo" data-demo="admin">Admin login</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
