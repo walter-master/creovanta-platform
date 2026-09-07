@@ -1,6 +1,7 @@
 ﻿import os
 import sqlite3
 import uuid
+from io import BytesIO
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any
@@ -8,8 +9,10 @@ from typing import Any
 import jwt
 import requests
 import stripe
+import psycopg
+from psycopg.rows import dict_row
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
 from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
 
@@ -34,6 +37,10 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_ENV") == "production"
 app.config["PREFERRED_URL_SCHEME"] = "https"
 app.config["PROPAGATE_EXCEPTIONS"] = False
+app.config["DATABASE_URL"] = os.getenv("DATABASE_URL")
+app.config["SUPABASE_URL"] = os.getenv("SUPABASE_URL")
+app.config["SUPABASE_SERVICE_ROLE_KEY"] = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+app.config["SUPABASE_STORAGE_BUCKET"] = os.getenv("SUPABASE_STORAGE_BUCKET", "documents")
 
 bcrypt = Bcrypt(app)
 DB_PATH = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "creovanta.db"))
@@ -46,9 +53,65 @@ if app.config["STRIPE_SECRET_KEY"]:
 
 
 def get_db():
+    if app.config["DATABASE_URL"]:
+        return PostgresConnection(app.config["DATABASE_URL"])
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+class PostgresConnection:
+    def __init__(self, database_url: str):
+        self.connection = psycopg.connect(database_url, row_factory=dict_row)
+
+    def execute(self, query, params=()):
+        query = query.replace("?", "%s").replace(
+            "INTEGER PRIMARY KEY AUTOINCREMENT", "BIGSERIAL PRIMARY KEY"
+        )
+        return self.connection.execute(query, params)
+
+    def executemany(self, query, params):
+        query = query.replace("?", "%s").replace(
+            "INTEGER PRIMARY KEY AUTOINCREMENT", "BIGSERIAL PRIMARY KEY"
+        )
+        with self.connection.cursor() as cursor:
+            cursor.executemany(query, params)
+        return cursor
+
+    def commit(self):
+        self.connection.commit()
+
+    def close(self):
+        self.connection.close()
+
+
+def supabase_storage_enabled():
+    return bool(app.config["SUPABASE_URL"] and app.config["SUPABASE_SERVICE_ROLE_KEY"])
+
+
+def supabase_storage_headers():
+    key = app.config["SUPABASE_SERVICE_ROLE_KEY"]
+    return {"Authorization": f"Bearer {key}", "apikey": key}
+
+
+def upload_to_supabase(path, content, content_type):
+    bucket = app.config["SUPABASE_STORAGE_BUCKET"]
+    url = f"{app.config['SUPABASE_URL'].rstrip('/')}/storage/v1/object/{bucket}/{path}"
+    response = requests.post(
+        url,
+        headers={**supabase_storage_headers(), "Content-Type": content_type},
+        data=content,
+        timeout=30,
+    )
+    response.raise_for_status()
+
+
+def download_from_supabase(path):
+    bucket = app.config["SUPABASE_STORAGE_BUCKET"]
+    url = f"{app.config['SUPABASE_URL'].rstrip('/')}/storage/v1/object/{bucket}/{path}"
+    response = requests.get(url, headers=supabase_storage_headers(), timeout=30)
+    response.raise_for_status()
+    return response.content
 
 
 def init_db():
@@ -445,13 +508,21 @@ def upload_document(user):
         return jsonify({"error": "The uploaded filename is not valid."}), 400
 
     stored_name = f"{uuid.uuid4().hex}_{safe_name}"
-    file_path = os.path.join(UPLOAD_FOLDER, stored_name)
-    file.save(file_path)
+    content = file.read()
+    if supabase_storage_enabled():
+        file_path = stored_name
+        upload_to_supabase(file_path, content, file.mimetype or "application/octet-stream")
+        size = len(content)
+    else:
+        file_path = os.path.join(UPLOAD_FOLDER, stored_name)
+        with open(file_path, "wb") as destination:
+            destination.write(content)
+        size = os.path.getsize(file_path)
 
     conn = get_db()
     conn.execute(
         "INSERT INTO documents (user_id, file_name, original_name, file_path, content_type, size) VALUES (?, ?, ?, ?, ?, ?)",
-        (user["id"], stored_name, safe_name, file_path, file.mimetype or "application/octet-stream", os.path.getsize(file_path)),
+        (user["id"], stored_name, safe_name, file_path, file.mimetype or "application/octet-stream", size),
     )
     conn.commit()
     document_id = conn.execute("SELECT id FROM documents WHERE file_name = ? AND user_id = ? ORDER BY id DESC LIMIT 1", (stored_name, user["id"])).fetchone()
@@ -475,7 +546,20 @@ def download_document(user, document_id):
     if user["role"] != "admin" and row["user_id"] != user["id"]:
         return jsonify({"error": "You do not have access to this document."}), 403
 
-    return send_from_directory(UPLOAD_FOLDER, os.path.basename(row["file_name"]), as_attachment=True, download_name=row["original_name"])
+    if supabase_storage_enabled():
+        content = download_from_supabase(row["file_path"])
+        return send_file(
+            BytesIO(content),
+            as_attachment=True,
+            download_name=row["original_name"],
+            mimetype=row["content_type"],
+        )
+    return send_from_directory(
+        UPLOAD_FOLDER,
+        os.path.basename(row["file_name"]),
+        as_attachment=True,
+        download_name=row["original_name"],
+    )
 
 
 @app.route("/api/projects", methods=["GET", "POST"])
