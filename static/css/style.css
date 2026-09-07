@@ -30,6 +30,9 @@ body {
   color: var(--text);
 }
 
+.access-banner { display: flex; align-items: center; gap: 1rem; padding: .8rem 1.2rem; background: rgba(255, 203, 107, .12); border-bottom: 1px solid rgba(255, 203, 107, .35); }
+.access-banner span { color: var(--muted); flex: 1; }
+
 button,
 input,
 textarea,

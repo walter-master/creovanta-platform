@@ -32,6 +32,8 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 app.config["APP_URL"] = os.getenv("APP_URL", "http://localhost:5000")
 app.config["STRIPE_SECRET_KEY"] = os.getenv("STRIPE_SECRET_KEY")
 app.config["STRIPE_PUBLISHABLE_KEY"] = os.getenv("STRIPE_PUBLISHABLE_KEY")
+app.config["STRIPE_WEBHOOK_SECRET"] = os.getenv("STRIPE_WEBHOOK_SECRET")
+app.config["REQUIRE_PAID_ACCESS"] = os.getenv("REQUIRE_PAID_ACCESS", "true").lower() == "true"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_ENV") == "production"
@@ -317,6 +319,28 @@ def admin_required(func):
     return wrapper
 
 
+def has_paid_access(user):
+    if user.get("role") == "admin" or not app.config["REQUIRE_PAID_ACCESS"]:
+        return True
+    conn = get_db()
+    order = conn.execute(
+        "SELECT id FROM orders WHERE user_id = ? AND status IN ('paid', 'active', 'mock_paid') "
+        "ORDER BY created_at DESC LIMIT 1",
+        (user["id"],),
+    ).fetchone()
+    conn.close()
+    return bool(order)
+
+
+def paid_access_required(func):
+    @wraps(func)
+    def wrapper(user, *args, **kwargs):
+        if not has_paid_access(user):
+            return jsonify({"error": "A verified payment is required to access the workspace.", "code": "payment_required"}), 402
+        return func(user, *args, **kwargs)
+    return wrapper
+
+
 def require_roles(*allowed_roles):
     def decorator(func):
         @wraps(func)
@@ -341,6 +365,7 @@ def serialize_user(user: dict):
         "name": user["full_name"],
         "email": user["email"],
         "role": user["role"],
+        "paidAccess": has_paid_access(user),
         "permissions": role_permissions.get(user["role"], []),
         "createdAt": user["created_at"],
     }
@@ -482,6 +507,7 @@ def healthz():
 
 @app.route("/api/documents")
 @auth_required
+@paid_access_required
 def list_documents(user):
     conn = get_db()
     if user["role"] == "admin":
@@ -494,6 +520,7 @@ def list_documents(user):
 
 @app.route("/api/documents/upload", methods=["POST"])
 @auth_required
+@paid_access_required
 @require_roles("admin", "engineer", "reviewer")
 def upload_document(user):
     if "file" not in request.files:
@@ -536,6 +563,7 @@ def upload_document(user):
 
 @app.route("/api/documents/<int:document_id>/download")
 @auth_required
+@paid_access_required
 def download_document(user, document_id):
     conn = get_db()
     row = conn.execute("SELECT * FROM documents WHERE id = ?", (document_id,)).fetchone()
@@ -564,6 +592,7 @@ def download_document(user, document_id):
 
 @app.route("/api/projects", methods=["GET", "POST"])
 @auth_required
+@paid_access_required
 def projects(user):
     conn = get_db()
     if request.method == "GET":
@@ -599,6 +628,7 @@ def projects(user):
 
 @app.route("/api/projects/<int:project_id>", methods=["PUT", "DELETE"])
 @auth_required
+@paid_access_required
 def project_detail(user, project_id):
     conn = get_db()
     existing = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
@@ -640,6 +670,7 @@ def project_detail(user, project_id):
 
 @app.route("/api/tasks", methods=["GET", "POST"])
 @auth_required
+@paid_access_required
 def tasks(user):
     conn = get_db()
     if request.method == "GET":
@@ -679,6 +710,7 @@ def tasks(user):
 
 @app.route("/api/milestones", methods=["GET", "POST"])
 @auth_required
+@paid_access_required
 def milestones(user):
     conn = get_db()
     if request.method == "GET":
@@ -718,6 +750,7 @@ def milestones(user):
 
 @app.route("/api/milestones/<int:milestone_id>", methods=["PUT", "DELETE"])
 @auth_required
+@paid_access_required
 def milestone_detail(user, milestone_id):
     conn = get_db()
     existing = conn.execute("SELECT * FROM milestones WHERE id = ?", (milestone_id,)).fetchone()
@@ -754,6 +787,7 @@ def milestone_detail(user, milestone_id):
 
 @app.route("/api/tasks/<int:task_id>", methods=["PUT", "DELETE"])
 @auth_required
+@paid_access_required
 def task_detail(user, task_id):
     conn = get_db()
     existing = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
@@ -819,6 +853,8 @@ def products_api(user):
 @app.route("/api/orders/checkout", methods=["POST"])
 @auth_required
 def checkout(user):
+    if app.config["REQUIRE_PAID_ACCESS"]:
+        return jsonify({"error": "Use the verified Stripe checkout flow."}), 403
     data = request.get_json(silent=True) or {}
     items = data.get("items") or []
     if not isinstance(items, list) or not items:
@@ -927,6 +963,9 @@ def create_checkout_session(user):
         except Exception as exc:
             return jsonify({"error": f"Stripe checkout failed: {str(exc)}"}), 500
 
+    if app.config["REQUIRE_PAID_ACCESS"]:
+        return jsonify({"error": "Online payment is not configured. Add STRIPE_SECRET_KEY before accepting payments."}), 503
+
     total = sum(
         float(products_by_id[product_id]["price"]) * quantity
         for product_id, quantity in quantities.items()
@@ -960,6 +999,32 @@ def create_checkout_session(user):
     return jsonify({"checkoutUrl": None, "mock": True, "message": "Checkout completed successfully.", "total": round(total, 2)})
 
 
+@app.route("/api/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    if not app.config["STRIPE_SECRET_KEY"] or not app.config["STRIPE_WEBHOOK_SECRET"]:
+        return jsonify({"error": "Stripe webhook is not configured."}), 503
+    try:
+        event = stripe.Webhook.construct_event(
+            request.get_data(),
+            request.headers.get("Stripe-Signature", ""),
+            app.config["STRIPE_WEBHOOK_SECRET"],
+        )
+    except (ValueError, stripe.error.SignatureVerificationError):
+        return jsonify({"error": "Invalid Stripe webhook."}), 400
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        user_id = session.get("metadata", {}).get("user_id")
+        if user_id:
+            conn = get_db()
+            conn.execute(
+                "INSERT INTO orders (user_id, items, total, status) VALUES (?, ?, ?, ?)",
+                (int(user_id), "Stripe verified workspace access", session.get("amount_total", 0) / 100, "paid"),
+            )
+            conn.commit()
+            conn.close()
+    return jsonify({"received": True})
+
+
 @app.route("/api/admin/summary")
 @auth_required
 @admin_required
@@ -989,6 +1054,7 @@ def admin_summary(user):
 
 @app.route("/api/ai/chat", methods=["POST"])
 @auth_required
+@paid_access_required
 def ai_chat(user):
     data = request.get_json(silent=True) or {}
     message = str(data.get("message") or "").strip()

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CREOVANTA | Production Platform</title>
     <meta name="description" content="CREOVANTA production platform with authentication, project management, AI assistant, store, and admin dashboard." />
+    <meta name="theme-color" content="#07141f" />
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.svg') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   </head>
   <body>
@@ -31,8 +34,14 @@
           <button class="ghost-btn" id="loginButton">Sign in</button>
           <div class="user-badge hidden" id="userBadge"></div>
           <button class="ghost-btn hidden" id="logoutButton">Logout</button>
+          <button class="ghost-btn hidden" id="installButton">Install app</button>
         </div>
       </header>
+      <div class="access-banner hidden" id="paymentBanner" role="status">
+        <strong>Workspace access is locked.</strong>
+        <span>A verified payment is required before projects, documents, and AI tools become available.</span>
+        <button class="primary-btn" data-target="store">View plans</button>
+      </div>
 
       <main class="platform-layout">
         <aside class="sidebar">

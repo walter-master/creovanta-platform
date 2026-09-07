@@ -15,6 +15,8 @@ const navButtons = document.querySelectorAll('.nav-link, .action-btn, .primary-b
 const authModal = document.getElementById('authModal');
 const loginButton = document.getElementById('loginButton');
 const logoutButton = document.getElementById('logoutButton');
+const installButton = document.getElementById('installButton');
+const paymentBanner = document.getElementById('paymentBanner');
 const userBadge = document.getElementById('userBadge');
 const toast = document.getElementById('toast');
 const loginForm = document.getElementById('loginForm');
@@ -51,6 +53,22 @@ const adminRevenue = document.getElementById('adminRevenue');
 const adminOrders = document.getElementById('adminOrders');
 
 const baseUrl = window.location.origin;
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  installButton?.classList.remove('hidden');
+});
+installButton?.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  installButton.classList.add('hidden');
+});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => showToast('Install support is unavailable in this browser.'));
+}
 
 function showToast(message) {
   if (!toast) return;
@@ -111,6 +129,7 @@ function updateAuthUI() {
   }
   const adminNav = document.querySelector('[data-target="admin"]');
   if (adminNav) adminNav.classList.toggle('hidden', !isLoggedIn || state.user.role !== 'admin');
+  paymentBanner?.classList.toggle('hidden', !isLoggedIn || state.user.paidAccess);
 }
 
 function storeToken(token) {
@@ -145,6 +164,10 @@ async function apiRequest(path, options = {}) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 402) {
+      paymentBanner?.classList.remove('hidden');
+      setActiveView('store');
+    }
     throw new Error(payload.error || 'Request failed.');
   }
 
