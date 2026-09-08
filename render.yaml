@@ -24,6 +24,12 @@ services:
         sync: false
       - key: REQUIRE_PAID_ACCESS
         value: "true"
+      - key: FIREWALL_RATE_LIMIT
+        value: "120"
+      - key: FIREWALL_AUTH_RATE_LIMIT
+        value: "10"
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
       - key: SESSION_COOKIE_SECURE
         value: true
       - key: PREFERRED_URL_SCHEME

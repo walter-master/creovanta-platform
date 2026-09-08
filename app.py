@@ -1,9 +1,11 @@
 ﻿import os
 import sqlite3
 import uuid
+from collections import defaultdict, deque
 from io import BytesIO
 from datetime import datetime, timedelta, timezone
 from functools import wraps
+from threading import Lock
 from typing import Any
 
 import jwt
@@ -29,6 +31,9 @@ app.config["UPLOAD_FOLDER"] = os.getenv(
     "UPLOAD_FOLDER", os.path.join(os.path.dirname(__file__), "uploads")
 )
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+app.config["FIREWALL_RATE_LIMIT"] = int(os.getenv("FIREWALL_RATE_LIMIT", "120"))
+app.config["FIREWALL_AUTH_RATE_LIMIT"] = int(os.getenv("FIREWALL_AUTH_RATE_LIMIT", "10"))
+app.config["TRUST_PROXY_HEADERS"] = os.getenv("TRUST_PROXY_HEADERS", "true").lower() == "true"
 app.config["APP_URL"] = os.getenv("APP_URL", "http://localhost:5000")
 app.config["STRIPE_SECRET_KEY"] = os.getenv("STRIPE_SECRET_KEY")
 app.config["STRIPE_PUBLISHABLE_KEY"] = os.getenv("STRIPE_PUBLISHABLE_KEY")
@@ -52,6 +57,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 if app.config["STRIPE_SECRET_KEY"]:
     stripe.api_key = app.config["STRIPE_SECRET_KEY"]
+
+_firewall_hits = defaultdict(deque)
+_firewall_lock = Lock()
 
 
 def get_db():
@@ -428,8 +436,41 @@ def set_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    if is_production:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
+
+
+def request_client_ip():
+    if app.config["TRUST_PROXY_HEADERS"]:
+        forwarded = request.headers.get("X-Forwarded-For", "")
+        if forwarded:
+            return forwarded.split(",", 1)[0].strip()
+    return request.remote_addr or "unknown"
+
+
+@app.before_request
+def application_firewall():
+    if "\x00" in request.path or ".." in request.path:
+        return jsonify({"error": "Request blocked by firewall."}), 400
+
+    limit = app.config["FIREWALL_AUTH_RATE_LIMIT"] if request.path in {
+        "/api/auth/login",
+        "/api/auth/register",
+    } else app.config["FIREWALL_RATE_LIMIT"]
+    bucket = f"{request_client_ip()}:{request.path in {'/api/auth/login', '/api/auth/register'}}"
+    now = datetime.now(timezone.utc).timestamp()
+    with _firewall_lock:
+        hits = _firewall_hits[bucket]
+        while hits and now - hits[0] >= 60:
+            hits.popleft()
+        if len(hits) >= limit:
+            response = jsonify({"error": "Too many requests. Try again later."})
+            response.status_code = 429
+            response.headers["Retry-After"] = "60"
+            return response
+        hits.append(now)
 
 
 @app.route("/")
