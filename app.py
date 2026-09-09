@@ -39,6 +39,11 @@ app.config["STRIPE_SECRET_KEY"] = os.getenv("STRIPE_SECRET_KEY")
 app.config["STRIPE_PUBLISHABLE_KEY"] = os.getenv("STRIPE_PUBLISHABLE_KEY")
 app.config["STRIPE_WEBHOOK_SECRET"] = os.getenv("STRIPE_WEBHOOK_SECRET")
 app.config["REQUIRE_PAID_ACCESS"] = os.getenv("REQUIRE_PAID_ACCESS", "true").lower() == "true"
+app.config["STRIPE_TRIAL_DAYS"] = 90
+app.config["BILLING_PLANS"] = {
+    "pro": {"name": "Pro", "price": 19.00, "description": "For independent engineers and small technical teams."},
+    "team": {"name": "Team", "price": 49.00, "description": "For teams coordinating projects, documents, and reviews."},
+}
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_ENV") == "production"
@@ -215,6 +220,22 @@ def init_db():
     )
     conn.execute(
         """
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            stripe_subscription_id TEXT UNIQUE,
+            plan TEXT NOT NULL,
+            status TEXT NOT NULL,
+            trial_ends_at TEXT,
+            current_period_end TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """
+    )
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS documents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -331,6 +352,14 @@ def has_paid_access(user):
     if user.get("role") == "admin" or not app.config["REQUIRE_PAID_ACCESS"]:
         return True
     conn = get_db()
+    subscription = conn.execute(
+        "SELECT id FROM subscriptions WHERE user_id = ? AND status IN ('trialing', 'active', 'past_due') "
+        "ORDER BY updated_at DESC LIMIT 1",
+        (user["id"],),
+    ).fetchone()
+    if subscription:
+        conn.close()
+        return True
     order = conn.execute(
         "SELECT id FROM orders WHERE user_id = ? AND status IN ('paid', 'active', 'mock_paid') "
         "ORDER BY created_at DESC LIMIT 1",
@@ -1040,6 +1069,59 @@ def create_checkout_session(user):
     return jsonify({"checkoutUrl": None, "mock": True, "message": "Checkout completed successfully.", "total": round(total, 2)})
 
 
+@app.route("/api/billing/plans")
+def billing_plans():
+    return jsonify(
+        {
+            "trialDays": app.config["STRIPE_TRIAL_DAYS"],
+            "plans": [
+                {"id": plan_id, **plan}
+                for plan_id, plan in app.config["BILLING_PLANS"].items()
+            ],
+        }
+    )
+
+
+@app.route("/api/billing/create-session", methods=["POST"])
+@auth_required
+def create_billing_session(user):
+    data = request.get_json(silent=True) or {}
+    plan_id = str(data.get("plan") or "").strip().lower()
+    plan = app.config["BILLING_PLANS"].get(plan_id)
+    if not plan:
+        return jsonify({"error": "Choose a valid billing plan."}), 400
+    if not app.config["STRIPE_SECRET_KEY"]:
+        return jsonify({"error": "Online payments are not configured yet."}), 503
+
+    try:
+        app_url = app.config.get("APP_URL", "http://localhost:5000").rstrip("/")
+        line_item = {
+            "price_data": {
+                "currency": "usd",
+                "product_data": {"name": f"CREOVANTA {plan['name']}"},
+                "unit_amount": round(plan["price"] * 100),
+                "recurring": {"interval": "month"},
+            },
+            "quantity": 1,
+        }
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[line_item],
+            payment_method_collection="always",
+            subscription_data={
+                "trial_period_days": app.config["STRIPE_TRIAL_DAYS"],
+                "metadata": {"user_id": str(user["id"]), "plan": plan_id},
+            },
+            success_url=f"{app_url}/app?billing=success",
+            cancel_url=f"{app_url}/app?billing=cancelled",
+            customer_email=user["email"],
+            metadata={"user_id": str(user["id"]), "plan": plan_id},
+        )
+        return jsonify({"checkoutUrl": session.url, "plan": plan_id, "trialDays": app.config["STRIPE_TRIAL_DAYS"]})
+    except stripe.error.StripeError as exc:
+        return jsonify({"error": f"Stripe checkout failed: {str(exc)}"}), 502
+
+
 @app.route("/api/stripe/webhook", methods=["POST"])
 def stripe_webhook():
     if not app.config["STRIPE_SECRET_KEY"] or not app.config["STRIPE_WEBHOOK_SECRET"]:
@@ -1055,14 +1137,33 @@ def stripe_webhook():
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         user_id = session.get("metadata", {}).get("user_id")
-        if user_id:
+        subscription_id = session.get("subscription")
+        plan_id = session.get("metadata", {}).get("plan", "pro")
+        if user_id and subscription_id:
             conn = get_db()
-            conn.execute(
-                "INSERT INTO orders (user_id, items, total, status) VALUES (?, ?, ?, ?)",
-                (int(user_id), "Stripe verified workspace access", session.get("amount_total", 0) / 100, "paid"),
-            )
+            existing = conn.execute(
+                "SELECT id FROM subscriptions WHERE stripe_subscription_id = ?", (subscription_id,)
+            ).fetchone()
+            if not existing:
+                conn.execute(
+                    "INSERT INTO subscriptions (user_id, stripe_subscription_id, plan, status) VALUES (?, ?, ?, ?)",
+                    (int(user_id), subscription_id, plan_id, "trialing"),
+                )
             conn.commit()
             conn.close()
+    elif event["type"] in {"customer.subscription.updated", "customer.subscription.deleted"}:
+        subscription = event["data"]["object"]
+        status = subscription.get("status", "canceled")
+        if event["type"].endswith("deleted"):
+            status = "canceled"
+        conn = get_db()
+        conn.execute(
+            "UPDATE subscriptions SET status = ?, current_period_end = ?, updated_at = CURRENT_TIMESTAMP "
+            "WHERE stripe_subscription_id = ?",
+            (status, subscription.get("current_period_end"), subscription.get("id")),
+        )
+        conn.commit()
+        conn.close()
     return jsonify({"received": True})
 
 

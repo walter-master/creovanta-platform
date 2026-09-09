@@ -51,6 +51,7 @@ const adminUsers = document.getElementById('adminUsers');
 const adminProjects = document.getElementById('adminProjects');
 const adminRevenue = document.getElementById('adminRevenue');
 const adminOrders = document.getElementById('adminOrders');
+const billingPlans = document.getElementById('billingPlans');
 
 const baseUrl = window.location.origin;
 let deferredInstallPrompt = null;
@@ -336,6 +337,43 @@ async function loadProducts() {
     renderProducts();
   } catch (error) {
     showToast(error.message);
+  }
+
+  async function loadBillingPlans() {
+    if (!billingPlans) return;
+    try {
+      const data = await fetch(`${baseUrl}/api/billing/plans`).then((response) => response.json());
+      billingPlans.innerHTML = (data.plans || []).map((plan) => `
+        <article class="pricing-option">
+          <span class="product-badge">${plan.name}</span>
+          <strong>$${Number(plan.price).toFixed(2)} / month</strong>
+          <p>${plan.description}</p>
+          <p>${data.trialDays}-day free trial. Card required; cancel before renewal.</p>
+          <button class="primary-btn full" data-plan-id="${plan.id}">Start free trial</button>
+        </article>
+      `).join('');
+      billingPlans.querySelectorAll('[data-plan-id]').forEach((button) => {
+        button.addEventListener('click', () => startBilling(button.dataset.planId));
+      });
+    } catch (error) {
+      billingPlans.innerHTML = '<p>Plans are temporarily unavailable.</p>';
+    }
+  }
+
+  async function startBilling(planId) {
+    if (!state.token) {
+      openAuthModal();
+      return;
+    }
+    try {
+      const data = await apiRequest('/api/billing/create-session', {
+        method: 'POST',
+        body: JSON.stringify({ plan: planId }),
+      });
+      window.location.href = data.checkoutUrl;
+    } catch (error) {
+      showToast(error.message);
+    }
   }
 }
 
@@ -695,6 +733,10 @@ async function loadDashboard() {
 
 function init() {
   bindNavigation();
+  loadBillingPlans();
+  if (new URLSearchParams(window.location.search).has('plan')) {
+    setActiveView('store');
+  }
   bindAuthForms();
   if (documentUploadForm) documentUploadForm.addEventListener('submit', uploadDocument);
   if (chatForm) chatForm.addEventListener('submit', handleChatSubmit);
