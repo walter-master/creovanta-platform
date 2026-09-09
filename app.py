@@ -572,7 +572,13 @@ def list_users(user):
 
 @app.route("/api/healthz")
 def healthz():
-    return jsonify({"status": "ok", "service": "creovanta"})
+    try:
+        conn = get_db()
+        conn.execute("SELECT 1").fetchone()
+        conn.close()
+    except Exception:
+        return jsonify({"status": "degraded", "service": "creovanta", "database": "unavailable"}), 503
+    return jsonify({"status": "ok", "service": "creovanta", "database": "ok"})
 
 
 @app.route("/api/documents")

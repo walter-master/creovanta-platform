@@ -79,6 +79,16 @@ function showToast(message) {
   showToast.timeoutId = setTimeout(() => toast.classList.add('hidden'), 2600);
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  }[character]));
+}
+
 function setActiveView(targetId) {
   views.forEach((view) => {
     view.classList.toggle('active', view.id === targetId);
@@ -338,16 +348,19 @@ async function loadProducts() {
   } catch (error) {
     showToast(error.message);
   }
+}
 
-  async function loadBillingPlans() {
-    if (!billingPlans) return;
-    try {
-      const data = await fetch(`${baseUrl}/api/billing/plans`).then((response) => response.json());
-      billingPlans.innerHTML = (data.plans || []).map((plan) => `
-        <article class="pricing-option">
-          <span class="product-badge">${plan.name}</span>
+async function loadBillingPlans() {
+  if (!billingPlans) return;
+  try {
+    const response = await fetch(`${baseUrl}/api/billing/plans`);
+    if (!response.ok) throw new Error('Plans are temporarily unavailable.');
+    const data = await response.json();
+    billingPlans.innerHTML = (data.plans || []).map((plan) => `
+          <article class="pricing-option">
+          <span class="product-badge">${escapeHtml(plan.name)}</span>
           <strong>$${Number(plan.price).toFixed(2)} / month</strong>
-          <p>${plan.description}</p>
+          <p>${escapeHtml(plan.description)}</p>
           <p>${data.trialDays}-day free trial. Card required; cancel before renewal.</p>
           <button class="primary-btn full" data-plan-id="${plan.id}">Start free trial</button>
         </article>
@@ -375,17 +388,16 @@ async function loadProducts() {
       showToast(error.message);
     }
   }
-}
 
 function renderProducts() {
   if (!productGrid) return;
   productGrid.innerHTML = state.products.map((product) => `
     <article class="product-card">
-      <div class="product-badge">${product.category}</div>
-      <div class="module-icon">${product.image || '🛍️'}</div>
-      <h3>${product.name}</h3>
-      <p>${product.description || 'Engineering product'}</p>
-      <div class="product-rating">★★★★★ <span>${product.rating}</span></div>
+      <div class="product-badge">${escapeHtml(product.category)}</div>
+      <div class="module-icon">${escapeHtml(product.image || '🛍️')}</div>
+      <h3>${escapeHtml(product.name)}</h3>
+      <p>${escapeHtml(product.description || 'Engineering product')}</p>
+      <div class="product-rating">★★★★★ <span>${escapeHtml(product.rating)}</span></div>
       <div class="product-footer">
         <strong>$${Number(product.price).toFixed(2)}</strong>
         <button class="mini-btn" data-product-id="${product.id}">Add to cart</button>
@@ -417,7 +429,7 @@ function renderCart() {
 
   cartItems.innerHTML = state.cart.map((item) => `
     <div class="cart-item">
-      <span>${item.name}</span>
+      <span>${escapeHtml(item.name)}</span>
       <strong>$${Number(item.price).toFixed(2)}</strong>
     </div>
   `).join('');
